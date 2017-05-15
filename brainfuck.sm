@@ -33,59 +33,59 @@
     (iter-drop (list-format lat n) val n))
 
 
-(define (split-loop lat)
+(define (loop-eval lat)
     (cond
         ((null? lat) '())
         (else
             (cond
                 ((string=? "[")
-                    (split-loop (split-loop (cdr lat))))
+                    (loop-eval (split-loop (cdr lat))))
                 ((string=? "]")
                     (cdr lat))
                 (else
                     (split-loop (cdr lat)))))))
 
 
-
-(define (brainfuck-eval line)
-    (define (iter-br-eval lat p env)
-        (print "lat=" lat)
-        (cond
-            ((null? lat) '())
-            (else
-                (cond
-                    ((string=? ">" (car lat))
-                        (iter-br-eval (cdr lat) (add1 p) env))
-                    ((string=? "<" (car lat))
-                        (cond
-                            ((zero? p)
-                                (iter-br-eval (cdr lat) p env))
-                            (else
-                                (iter-br-eval (cdr lat) (sub1 p) env))))
-                    ((string=? "+" (car lat))
-                        (iter-br-eval
-                            (cdr lat) p (drop-off env (add1 (pick-up env p)) p)))
-                    ((string=? "-" (car lat))
-                        (iter-br-eval
-                            (cdr lat) p (drop-off env (sub1 (pick-up env p)) p)))
-                    ((string=? "." (car lat))
-                        (print "print[ " (pick-up env p) " ] " p env)
-                        (iter-br-eval (cdr lat) p env))
+(define (brainfuck-eval lat p env)
+    (print "lat=" lat)
+    (cond
+        ((null? lat) env)
+        (else
+            (cond
+                ((string=? ">" (car lat))
+                    (brainfuck-eval (cdr lat) (add1 p) env))
+                ((string=? "<" (car lat))
+                    (cond
+                        ((zero? p)
+                            (brainfuck-eval (cdr lat) p env))
+                        (else
+                            (brainfuck-eval (cdr lat) (sub1 p) env))))
+                ((string=? "+" (car lat))
+                    (brainfuck-eval
+                        (cdr lat) p (drop-off env (add1 (pick-up env p)) p)))
+                ((string=? "-" (car lat))
+                    (brainfuck-eval
+                        (cdr lat) p (drop-off env (sub1 (pick-up env p)) p)))
+                ((string=? "." (car lat))
+                    (print "print[ " (pick-up env p) " ] ")
+                    (brainfuck-eval (cdr lat) p env))
 ;;ここから未テスト
-                    ((string=? "[" (car lat))
-                        (cond
-                            ((zero? (pick-up env p))
-                                (iter-eval (split-lat lat) p env))
-                            (else
-                                (iter-eval (cdr lat) p env))))
+                ((string=? "[" (car lat))
+                    (cond
+                        ((zero? (pick-up env p))
+                            (iter-eval (split-lat lat) p env))
+                        (else
+                            (iter-eval (cdr lat) p env))))
 
-                    (else
-                        (iter-br-eval (cdr lat) p env))))))
+                (else
+                    (brainfuck-eval (cdr lat) p env))))))
+
+(define (brainfuck line)
     (print "line=" line)
     (cond
         ((null? line) '())
         (else
-            (iter-br-eval (map string (string->list line)) 0 '(0)))))
+            (brainfuck-eval (map string (string->list line)) 0 '(0)))))
 
 
 (define fac
@@ -97,5 +97,5 @@
       (iter-fac 1 1)))
 
 
-(brainfuck-eval ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++.")
+(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
 ;(print (fac 10))
