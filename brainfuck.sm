@@ -33,6 +33,17 @@
     (iter-drop (list-format lat n) val n))
 
 
+
+(define (index-of lat s)
+    (define (count lat s n)
+        (cond
+            ((null? lat) -1)
+            ((string=? (car lat) s) n)
+            (else
+                (count (cdr lat) s (add1 n)))))
+    (count lat s 0))
+
+;;作成中
 (define (loop-eval lat)
     (cond
         ((null? lat) '())
@@ -99,3 +110,4 @@
 
 (print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
 ;(print (fac 10))
+(print (index-of (map string (string->list "qwertyuiopa")) "a"))
