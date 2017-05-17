@@ -1,19 +1,23 @@
+;;インクリメント
 (define (add1 n)
     (+ n 1))
 
+;;デクリメント
 (define (sub1 n)
     (- n 1))
 
-(define (pick-up lat n)
+;;環境から特定箇所の値を取得
+(define (pick-up env pos)
     (define (iter-pick lat n)
         (cond
             ((null? lat) 0)
             ((zero? n) (car lat))
             (else
                 (iter-pick (cdr lat) (sub1 n)))))
-    (iter-pick lat n))
+    (iter-pick env pos))
 
-(define (drop-off lat val n)
+;;環境の特定の場所に値を書き込んだ新しいリストを作成する
+(define (drop-off env val pos)
     (define (list-format lat n)
         (cond
             ((zero? n) lat)
@@ -30,10 +34,9 @@
                         (iter-drop (cons 0 lat) val (sub1 n)))
                     (else
                         (cons (car lat) (iter-drop (cdr lat) val (sub1 n))))))))
-    (iter-drop (list-format lat n) val n))
+    (iter-drop (list-format env pos) val pos))
 
-
-
+;;特定の文字列が存在するインデックスを返す
 (define (index-of lat s)
     (define (count lat s n)
         (cond
@@ -43,20 +46,27 @@
                 (count (cdr lat) s (add1 n)))))
     (count lat s 0))
 
-;;作成中
+;;[]で囲まれた範囲を返す。ネストしている場合はその部分を含んで返却する
 (define (loop-eval lat)
-    (cond
-        ((null? lat) '())
-        (else
-            (cond
-                ((string=? "[")
-                    (loop-eval (split-loop (cdr lat))))
-                ((string=? "]")
-                    (cdr lat))
-                (else
-                    (split-loop (cdr lat)))))))
+    (define (loop-eval-iter lat nest-cnt n)
+        (print (car lat))
+        (cond
+            ((null? lat) n)
+            (else
+                (cond
+                    ((string=? "[" (car lat))
+                        (loop-eval-iter (cdr lat) (add1 nest-cnt) (add1 n)))
+                    ((string=? "]" (car lat))
+                        (cond
+                            ((zero? nest-cnt) n)
+                            (else
+                                (loop-eval-iter (cdr lat) (sub1 nest-cnt) (add1 n)))))
+                    (else
+                        (loop-eval-iter (cdr lat) nest-cnt (add1 n)))))))
+    (loop-eval-iter lat -1 0))
+                        
 
-
+;;eval
 (define (brainfuck-eval lat p env)
     (print "lat=" lat)
     (cond
@@ -110,4 +120,4 @@
 
 (print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
 ;(print (fac 10))
-(print (index-of (map string (string->list "qwertyuiopa")) "a"))
+(print (loop-eval (map string (string->list "aaa[aaa]a]a"))))
