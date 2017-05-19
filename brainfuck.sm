@@ -46,24 +46,39 @@
                 (count (cdr lat) s (add1 n)))))
     (count lat s 0))
 
+
+
+(define (loop-eval lat env p)
+    (print "loop lat=" lat)
+    (print "loop  p =" (pick-up env p))
+    (cond
+        ((null? lat) env)
+        (else
+            (cond
+                ((zero? (pick-up env p))
+                    (brainfuck-eval lat (+ p (length lat)) env))
+                (else
+                    (loop-eval lat (brainfuck-eval lat p env) p))))))
+
+
 ;;[]で囲まれた範囲を返す。ネストしている場合はその部分を含んで返却する
-(define (loop-eval lat)
-    (define (loop-eval-iter lat nest-cnt n)
+(define (loop-line lat)
+    (define (loop-line-iter lat nest-cnt)
         (print (car lat))
         (cond
             ((null? lat) n)
             (else
                 (cond
                     ((string=? "[" (car lat))
-                        (loop-eval-iter (cdr lat) (add1 nest-cnt) (add1 n)))
+                        (cons (car lat) (loop-line-iter (cdr lat) (add1 nest-cnt))))
                     ((string=? "]" (car lat))
                         (cond
-                            ((zero? nest-cnt) n)
+                            ((zero? nest-cnt) (cons (car lat) '()))
                             (else
-                                (loop-eval-iter (cdr lat) (sub1 nest-cnt) (add1 n)))))
+                                (cons (car lat) (loop-line-iter (cdr lat) (sub1 nest-cnt))))))
                     (else
-                        (loop-eval-iter (cdr lat) nest-cnt (add1 n)))))))
-    (loop-eval-iter lat -1 0))
+                        (cons (car lat) (loop-line-iter (cdr lat) nest-cnt)))))))
+    (loop-line-iter lat -1))
                         
 
 ;;eval
@@ -90,14 +105,8 @@
                 ((string=? "." (car lat))
                     (print "print[ " (pick-up env p) " ] ")
                     (brainfuck-eval (cdr lat) p env))
-;;ここから未テスト
                 ((string=? "[" (car lat))
-                    (cond
-                        ((zero? (pick-up env p))
-                            (iter-eval (split-lat lat) p env))
-                        (else
-                            (iter-eval (cdr lat) p env))))
-
+                    (loop-eval (loop-line lat) env p))
                 (else
                     (brainfuck-eval (cdr lat) p env))))))
 
@@ -109,15 +118,6 @@
             (brainfuck-eval (map string (string->list line)) 0 '(0)))))
 
 
-(define fac
-  (lambda (n)
-      (define (iter-fac product counter)
-        (if (> counter n)     ;  iter-fac が作られたときのフレームの n を参照
-            product
-            (iter-fac (* product counter) (+ counter 1))))
-      (iter-fac 1 1)))
+;(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
+(print (brainfuck "+++.[>+++<-]>."))
 
-
-(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
-;(print (fac 10))
-(print (loop-eval (map string (string->list "aaa[aaa]a]a"))))
