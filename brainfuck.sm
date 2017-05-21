@@ -6,6 +6,15 @@
 (define (sub1 n)
     (- n 1))
 
+;;carを繰り返す
+(define (skip-car lat n)
+    (cond
+        ((null? lat) '())
+        ((zero? n) lat)
+        (else
+            (skip-car (cdr lat) (sub1 n)))))
+
+
 ;;環境から特定箇所の値を取得
 (define (pick-up env pos)
     (define (iter-pick lat n)
@@ -46,25 +55,21 @@
                 (count (cdr lat) s (add1 n)))))
     (count lat s 0))
 
-
-
-(define (loop-eval lat env p)
-    (print "loop lat=" lat)
-    (print "loop  p =" (pick-up env p))
+(define (loop-eval lat loop-lat env p)
     (cond
         ((null? lat) env)
         (else
             (cond
                 ((zero? (pick-up env p))
-                    (brainfuck-eval lat (+ p (length lat)) env))
+                    (brainfuck-eval (skip-car lat (length loop-lat)) env p))
                 (else
-                    (loop-eval lat (brainfuck-eval lat p env) p))))))
+                    (loop-eval lat loop-lat (brainfuck-eval loop-lat env p) p))))))
 
 
 ;;[]で囲まれた範囲を返す。ネストしている場合はその部分を含んで返却する
 (define (loop-line lat)
     (define (loop-line-iter lat nest-cnt)
-        (print (car lat))
+        ;(print (car lat))
         (cond
             ((null? lat) n)
             (else
@@ -79,45 +84,42 @@
                     (else
                         (cons (car lat) (loop-line-iter (cdr lat) nest-cnt)))))))
     (loop-line-iter lat -1))
-                        
 
 ;;eval
-(define (brainfuck-eval lat p env)
+(define (brainfuck-eval lat env p)
     (print "lat=" lat)
     (cond
         ((null? lat) env)
         (else
             (cond
                 ((string=? ">" (car lat))
-                    (brainfuck-eval (cdr lat) (add1 p) env))
+                    (brainfuck-eval (cdr lat) env (add1 p)))
                 ((string=? "<" (car lat))
                     (cond
                         ((zero? p)
-                            (brainfuck-eval (cdr lat) p env))
+                            (brainfuck-eval (cdr lat) env p))
                         (else
-                            (brainfuck-eval (cdr lat) (sub1 p) env))))
+                            (brainfuck-eval (cdr lat) env (sub1 p)))))
                 ((string=? "+" (car lat))
                     (brainfuck-eval
-                        (cdr lat) p (drop-off env (add1 (pick-up env p)) p)))
+                        (cdr lat) (drop-off env (add1 (pick-up env p)) p) p))
                 ((string=? "-" (car lat))
                     (brainfuck-eval
-                        (cdr lat) p (drop-off env (sub1 (pick-up env p)) p)))
+                        (cdr lat) (drop-off env (sub1 (pick-up env p)) p) p))
                 ((string=? "." (car lat))
                     (print "print[ " (pick-up env p) " ] ")
-                    (brainfuck-eval (cdr lat) p env))
+                    (brainfuck-eval (cdr lat) env p))
                 ((string=? "[" (car lat))
-                    (loop-eval (loop-line lat) env p))
+                    (loop-eval lat (cdr (loop-line lat)) env p))
                 (else
-                    (brainfuck-eval (cdr lat) p env))))))
+                    (brainfuck-eval (cdr lat) env p))))))
 
 (define (brainfuck line)
     (print "line=" line)
     (cond
         ((null? line) '())
         (else
-            (brainfuck-eval (map string (string->list line)) 0 '(0)))))
-
+            (brainfuck-eval (map string (string->list line)) '(0) 0))))
 
 ;(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
-(print (brainfuck "+++.[>+++<-]>."))
-
+(print (brainfuck "++++++.[>+++.<-]>."))
