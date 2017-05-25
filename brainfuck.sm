@@ -1,3 +1,21 @@
+(use gauche.termios)
+
+;; http://d.hatena.ne.jp/rui314/20070319/p1
+;; 端末を非カノニカルモードに変更して1文字を読む手続き。
+;; リターンするまえに端末のモードを元に戻す。
+(define (read-single-char port)
+  (let* ((attr (sys-tcgetattr port))
+         (lflag (slot-ref attr 'lflag)))
+    (dynamic-wind
+      (lambda ()
+        (slot-set! attr 'lflag (logand lflag (lognot ICANON)))
+        (sys-tcsetattr port TCSAFLUSH attr))
+      (lambda ()
+        (read-char port))
+      (lambda ()
+        (slot-set! attr 'lflag lflag)
+        (sys-tcsetattr port TCSANOW attr)))))
+
 ;;インクリメント
 (define (add1 n)
     (+ n 1))
@@ -30,6 +48,7 @@
     (define (list-format lat n)
         (cond
             ((zero? n) lat)
+            ((< n (length lat)) lat)
             (else
                 (list-format (append lat (cons 0 '())) (sub1 n)))))
     (define (iter-drop lat val n)
@@ -44,16 +63,6 @@
                     (else
                         (cons (car lat) (iter-drop (cdr lat) val (sub1 n))))))))
     (iter-drop (list-format env pos) val pos))
-
-;;特定の文字列が存在するインデックスを返す
-(define (index-of lat s)
-    (define (count lat s n)
-        (cond
-            ((null? lat) -1)
-            ((string=? (car lat) s) n)
-            (else
-                (count (cdr lat) s (add1 n)))))
-    (count lat s 0))
 
 (define (loop-eval lat loop-lat env p)
     (cond
@@ -87,7 +96,7 @@
 
 ;;eval
 (define (brainfuck-eval lat env p)
-    (print "lat=" lat)
+    ;(print "lat=" lat)
     (cond
         ((null? lat) env)
         (else
@@ -107,8 +116,11 @@
                     (brainfuck-eval
                         (cdr lat) (drop-off env (sub1 (pick-up env p)) p) p))
                 ((string=? "." (car lat))
-                    (print "print[ " (pick-up env p) " ] ")
+                    (print "print[ " (string (integer->char (pick-up env p))) " ] " (pick-up env p))
                     (brainfuck-eval (cdr lat) env p))
+                ((string=? "," (car lat))
+                    (brainfuck-eval
+                        (cdr lat) (drop-off env (char->integer (read-single-char (current-input-port))) p) p))
                 ((string=? "[" (car lat))
                     (loop-eval lat (cdr (loop-line lat)) env p))
                 (else
@@ -122,4 +134,5 @@
             (brainfuck-eval (map string (string->list line)) '(0) 0))))
 
 ;(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
-(print (brainfuck "++++++.[>+++.<-]>."))
+(print "env= " (brainfuck ",."))
+(print "env= " (brainfuck "+++++++++[>++++++++>+++++++++++>+++++<<<-]>.>++.+++++++..+++.>-.------------.<++++++++.--------.+++.------.--------.>+."))
