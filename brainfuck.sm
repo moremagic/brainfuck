@@ -116,7 +116,7 @@
                     (brainfuck-eval
                         (cdr lat) (drop-off env (sub1 (pick-up env p)) p) p))
                 ((string=? "." (car lat))
-                    (print "print[ " (string (integer->char (pick-up env p))) " ] " (pick-up env p))
+                    (print "[ " (string (integer->char (pick-up env p))) " ] (" (pick-up env p) ")")
                     (brainfuck-eval (cdr lat) env p))
                 ((string=? "," (car lat))
                     (brainfuck-eval
@@ -134,5 +134,31 @@
             (brainfuck-eval (map string (string->list line)) '(0) 0))))
 
 ;(print (brainfuck ".+++.>++.<.++++++++++.>.>>>>.+++++++++.<<<<<<<<<<<.++++++++++++++++++++++."))
-(print "env= " (brainfuck ",."))
-(print "env= " (brainfuck "+++++++++[>++++++++>+++++++++++>+++++<<<-]>.>++.+++++++..+++.>-.------------.<++++++++.--------.+++.------.--------.>+."))
+;(print "env= " (brainfuck ",."))
+;(print "env= " (brainfuck "+++++++++[>++++++++>+++++++++++>+++++<<<-]>.>++.+++++++..+++.>-.------------.<++++++++.--------.+++.------.--------.>+."))
+
+
+
+;;=============================================
+
+(use gauche.parseopt)
+
+(define (read-file file-name)
+  (with-input-from-file file-name
+    (lambda ()
+      (let loop((ls1 '()) (c (read-char)))
+	(if (eof-object? c)
+	    (list->string (reverse ls1))
+	    (loop (cons c ls1) (read-char)))))))
+
+(define main
+    (lambda (args)
+        (let-args (cdr args)
+            ((infile "f=s" #f)
+             (instr "i=s" #f))
+            (cond
+              ((not (equal? #f instr))
+                  (brainfuck instr))
+              (else
+                  (brainfuck (read-file infile)))))))
+
